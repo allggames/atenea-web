@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atenea Web · Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f1117; color: #f4f4f5; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(22, 25, 33, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .accent-gold { color: #fbbf24; }
+        .btn-gold { background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); transition: all 0.2s; }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 border-b border-white/10 pb-4">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Atenea · GitHub Preview</h1>
+            <p class="text-gray-400 text-sm">Conectado a Google Sheets</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass p-6 rounded-2xl">
+                <h2 class="text-xl font-semibold mb-4 accent-gold">Crear Perfil</h2>
+                <div class="space-y-4">
+                    <input id="newName" type="text" placeholder="Nombre completo" class="w-full bg-[#1c1f2a] border border-white/10 rounded-lg p-3 outline-none focus:border-amber-500">
+                    <input id="newCuil" type="text" placeholder="CUIL/CUIT" class="w-full bg-[#1c1f2a] border border-white/10 rounded-lg p-3 outline-none focus:border-amber-500">
+                    <input id="newBeast" type="text" placeholder="ID Beast (Extra)" class="w-full bg-[#1c1f2a] border border-white/10 rounded-lg p-3 outline-none focus:border-amber-500">
+                    <button onclick="crearUsuario()" class="w-full btn-gold text-black font-bold py-3 rounded-lg">Crear Perfil</button>
+                    <p id="statusMsg" class="text-sm mt-2 text-center"></p>
+                </div>
+
+                <div class="mt-8 border-t border-white/10 pt-6">
+                    <h2 class="text-xl font-semibold mb-4">Buscar Perfil</h2>
+                    <div class="flex gap-2">
+                        <input id="qUser" type="text" placeholder="Nombre, CUIL o Beast ID..." class="flex-1 bg-[#1c1f2a] border border-white/10 rounded-lg p-3 outline-none focus:border-amber-500">
+                        <button onclick="buscarUsuarios()" class="bg-white/5 hover:bg-white/10 px-4 rounded-lg">🔍</button>
+                    </div>
+                    <div id="userList" class="mt-4 space-y-2">
+                        </div>
+                </div>
+            </div>
+
+            <div id="selectedBox" class="glass p-6 rounded-2xl hidden">
+                <h2 class="text-xl font-semibold mb-2">Perfil Seleccionado</h2>
+                <div id="userData" class="mb-6">
+                    <p id="selName" class="text-2xl font-bold"></p>
+                    <p id="selMeta" class="text-gray-400 text-sm"></p>
+                    <p id="selBeast" class="text-amber-400 font-mono text-xs mt-2"></p>
+                </div>
+                <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-200 text-sm">
+                    🚀 En esta preview de GitHub, los datos viajan directamente a tu Excel de siempre.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PEGA AQUÍ TU URL DE GOOGLE WEB APP
+        const WEB_APP_URL = "TU_URL_DE_EXEC_AQUÍ";
+
+        async function apiCall(action, payload = {}) {
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action, payload })
+            });
+            const res = await response.json();
+            return res.data;
+        }
+
+        async function buscarUsuarios() {
+            const q = document.getElementById('qUser').value;
+            const results = await apiCall('searchUsers', { query: q });
+            const container = document.getElementById('userList');
+            container.innerHTML = '';
+            
+            results.forEach(u => {
+                const div = document.createElement('div');
+                div.className = "p-3 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer border border-transparent hover:border-amber-500/50 transition";
+                div.innerHTML = `
+                    <div class="font-bold">${u.nombre_canonico}</div>
+                    <div class="text-xs text-gray-400">CUIL: ${u.cuit_cuil} | <span class="text-amber-500">Beast: ${u.user_id_beast || '-'}</span></div>
+                `;
+                div.onclick = () => verPerfil(u);
+                container.appendChild(div);
+            });
+        }
+
+        function verPerfil(u) {
+            document.getElementById('selectedBox').classList.remove('hidden');
+            document.getElementById('selName').textContent = u.nombre_canonico;
+            document.getElementById('selMeta').textContent = `CUIL: ${u.cuit_cuil} | ID: ${u.user_id}`;
+            document.getElementById('selBeast').textContent = `BEAST ID: ${u.user_id_beast || '-'}`;
+        }
+
+        async function crearUsuario() {
+            const msg = document.getElementById('statusMsg');
+            msg.textContent = "⏳ Procesando...";
+            const payload = {
+                nombre_canonico: document.getElementById('newName').value,
+                cuit_cuil: document.getElementById('newCuil').value,
+                user_id_beast: document.getElementById('newBeast').value
+            };
+            const res = await apiCall('createUser', payload);
+            msg.textContent = "✅ Perfil creado con éxito";
+            buscarUsuarios();
+        }
+    </script>
+</body>
+</html>
